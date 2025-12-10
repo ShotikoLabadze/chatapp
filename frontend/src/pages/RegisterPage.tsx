@@ -4,19 +4,24 @@ import { AuthContext } from "../contexts/AuthContext";
 
 export default function RegisterPage() {
   const { setAuth } = useContext(AuthContext);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+
     try {
       await api.post("/auth/register", { email, password });
+
       const loginRes = await api.post("/auth/login", { email, password });
+
       setAuth(loginRes.data.token, loginRes.data.userId);
       setAuthToken(loginRes.data.token);
     } catch (err: any) {
-      setError(err.response?.data?.error || "Register failed");
+      console.error(err);
+      setError(err.response?.data?.error || "Registration failed");
     }
   };
 
