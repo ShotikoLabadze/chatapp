@@ -10,6 +10,7 @@ app.use(express.json());
 connectDB();
 
 app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/chat", require("./routes/chatRoutes"));
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Server running on ${PORT}`));
