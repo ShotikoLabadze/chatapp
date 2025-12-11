@@ -2,12 +2,15 @@ import { useState, useContext } from "react";
 import { AuthContext } from "./contexts/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import ChatPage from "./pages/ChatPage";
 
 function App() {
   const { token } = useContext(AuthContext);
   const [showRegister, setShowRegister] = useState(false);
 
-  if (token) return <p>Logged in!</p>;
+  if (token) {
+    return <ChatPage />;
+  }
 
   return (
     <div>
