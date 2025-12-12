@@ -110,12 +110,6 @@
   max-width: 60%;
 }
 
-.bubble.me {
-  align-self: flex-end;
-  color: white;
-  background: #92487a;
-}
-
 .input-area {
   display: flex;
   gap: 10px;

@@ -87,6 +87,7 @@ export default function ChatPage() {
       _id: tempId,
       chatId,
       senderId: userId,
+      senderEmail: "Me",
       text: messageText,
       pending: true,
     };
@@ -139,14 +140,18 @@ export default function ChatPage() {
             </div>
 
             <div className="messages-area">
-              {messages.map((msg) => (
-                <div
-                  key={msg._id}
-                  className={msg.senderId === userId ? "bubble me" : "bubble"}
-                >
-                  {msg.text}
-                </div>
-              ))}
+              {messages.map((msg) => {
+                const senderName =
+                  msg.senderId === userId
+                    ? "Me"
+                    : msg.senderEmail?.split("@")[0] || "Unknown";
+
+                return (
+                  <div key={msg._id} className="bubble">
+                    <strong>{senderName}:</strong> {msg.text}
+                  </div>
+                );
+              })}
             </div>
 
             <div className="input-area">
