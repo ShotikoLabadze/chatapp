@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from "react";
-import io from "socket.io-client";
+import io, { Socket } from "socket.io-client";
 import { AuthContext } from "../contexts/AuthContext";
 import ChatList from "../components/ChatList";
 import CreateDirectChat from "../components/CreateDirectChat";
@@ -7,20 +7,23 @@ import api from "../api/api";
 import { Chat } from "../types/types";
 import "../pages/ChatPage.css";
 
-const socket = io("http://localhost:5000");
-
 export default function ChatPage() {
   const { token, userId, logout } = useContext(AuthContext)!;
   const [chats, setChats] = useState<Chat[]>([]);
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [messageText, setMessageText] = useState("");
+  const [socket, setSocket] = useState<Socket | null>(null);
 
   const fetchChats = async () => {
-    const res = await api.get("/chat", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    setChats(res.data);
+    try {
+      const res = await api.get("/chat", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setChats(res.data);
+    } catch (err) {
+      console.error("Failed to fetch chats:", err);
+    }
   };
 
   useEffect(() => {
@@ -28,41 +31,74 @@ export default function ChatPage() {
   }, [token]);
 
   useEffect(() => {
-    if (!selectedChat) return;
+    const newSocket = io("http://localhost:5000");
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedChat || !socket) return;
 
     const fetchMessages = async () => {
-      const res = await api.get(`/messages/${selectedChat._id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setMessages(res.data);
+      try {
+        const res = await api.get(`/messages/${selectedChat._id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setMessages(res.data);
+      } catch (err) {
+        console.error("Failed to fetch messages:", err);
+      }
     };
 
     fetchMessages();
-
     socket.emit("joinChat", selectedChat._id);
 
-    socket.on("newMessage", (message) => {
-      if (message.chatId === selectedChat._id) {
+    const handleNewMessage = (message: any) => {
+      if (
+        message.chatId === selectedChat._id &&
+        !messages.some((m) => m._id === message._id)
+      ) {
         setMessages((prev) => [...prev, message]);
       }
-    });
+    };
+
+    socket.on("newMessage", handleNewMessage);
 
     return () => {
-      socket.off("newMessage");
+      socket.off("newMessage", handleNewMessage);
     };
-  }, [selectedChat, token]);
+  }, [selectedChat, socket, token, messages]);
 
   const sendMessage = async () => {
     if (!messageText || !selectedChat) return;
 
-    const res = await api.post(
-      `/messages`,
-      { chatId: selectedChat._id, senderId: userId, text: messageText },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    const tempMessage = {
+      _id: "temp-" + Date.now(),
+      chatId: selectedChat._id,
+      senderId: userId,
+      text: messageText,
+    };
 
-    socket.emit("sendMessage", res.data);
+    setMessages((prev) => [...prev, tempMessage]);
     setMessageText("");
+
+    try {
+      const res = await api.post(
+        `/messages`,
+        { chatId: selectedChat._id, senderId: userId, text: messageText },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setMessages((prev) =>
+        prev.map((m) => (m._id === tempMessage._id ? res.data : m))
+      );
+    } catch (err) {
+      console.error("Failed to send message:", err);
+      setMessages((prev) => prev.filter((m) => m._id !== tempMessage._id));
+    }
   };
 
   return (
@@ -89,9 +125,9 @@ export default function ChatPage() {
             </div>
 
             <div className="messages-area">
-              {messages.map((msg, i) => (
+              {messages.map((msg) => (
                 <div
-                  key={i}
+                  key={msg._id}
                   className={msg.senderId === userId ? "bubble me" : "bubble"}
                 >
                   {msg.text}
@@ -114,4 +150,3 @@ export default function ChatPage() {
     </div>
   );
 }
-///2 jer gzavnis
