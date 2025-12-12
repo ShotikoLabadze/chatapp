@@ -21,9 +21,7 @@ class MessageController {
   async getChatMessages(req, res, next) {
     try {
       const { chatId } = req.params;
-
       const messages = await messageService.getMessagesByChat(chatId);
-
       res.json(messages);
     } catch (e) {
       next(e);

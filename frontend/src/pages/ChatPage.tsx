@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import io, { Socket } from "socket.io-client";
 import { AuthContext } from "../contexts/AuthContext";
 import ChatList from "../components/ChatList";
@@ -9,11 +9,22 @@ import "../pages/ChatPage.css";
 
 export default function ChatPage() {
   const { token, userId, logout } = useContext(AuthContext)!;
+
   const [chats, setChats] = useState<Chat[]>([]);
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [messageText, setMessageText] = useState("");
-  const [socket, setSocket] = useState<Socket | null>(null);
+
+  const socketRef = useRef<Socket | null>(null);
+
+  useEffect(() => {
+    const socket = io("http://localhost:5000");
+    socketRef.current = socket;
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   const fetchChats = async () => {
     try {
@@ -31,55 +42,53 @@ export default function ChatPage() {
   }, [token]);
 
   useEffect(() => {
-    const newSocket = io("http://localhost:5000");
-    setSocket(newSocket);
+    if (!selectedChat || !socketRef.current) return;
 
-    return () => {
-      newSocket.disconnect();
-    };
-  }, []);
+    const chatId = selectedChat._id;
 
-  useEffect(() => {
-    if (!selectedChat || !socket) return;
-
-    const fetchMessages = async () => {
+    const loadMessages = async () => {
       try {
-        const res = await api.get(`/messages/${selectedChat._id}`, {
+        const res = await api.get(`/messages/${chatId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setMessages(res.data);
       } catch (err) {
-        console.error("Failed to fetch messages:", err);
+        console.error("Error loading messages:", err);
       }
     };
 
-    fetchMessages();
-    socket.emit("joinChat", selectedChat._id);
+    loadMessages();
 
-    const handleNewMessage = (message: any) => {
-      if (
-        message.chatId === selectedChat._id &&
-        !messages.some((m) => m._id === message._id)
-      ) {
-        setMessages((prev) => [...prev, message]);
-      }
+    socketRef.current.emit("joinChat", chatId);
+
+    const handleNewMessage = (msg: any) => {
+      if (msg.chatId !== chatId) return;
+
+      setMessages((prev) => {
+        if (prev.some((m) => m._id === msg._id)) return prev;
+        return [...prev, msg];
+      });
     };
 
-    socket.on("newMessage", handleNewMessage);
+    socketRef.current.on("newMessage", handleNewMessage);
 
     return () => {
-      socket.off("newMessage", handleNewMessage);
+      socketRef.current?.off("newMessage", handleNewMessage);
     };
-  }, [selectedChat, socket, token, messages]);
+  }, [selectedChat?._id, token]);
 
   const sendMessage = async () => {
-    if (!messageText || !selectedChat) return;
+    if (!messageText.trim() || !selectedChat) return;
 
+    const chatId = selectedChat._id;
+
+    const tempId = "temp-" + Date.now();
     const tempMessage = {
-      _id: "temp-" + Date.now(),
-      chatId: selectedChat._id,
+      _id: tempId,
+      chatId,
       senderId: userId,
       text: messageText,
+      pending: true,
     };
 
     setMessages((prev) => [...prev, tempMessage]);
@@ -87,17 +96,22 @@ export default function ChatPage() {
 
     try {
       const res = await api.post(
-        `/messages`,
-        { chatId: selectedChat._id, senderId: userId, text: messageText },
+        "/messages",
+        { chatId, text: messageText },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
+      const savedMessage = res.data;
+
       setMessages((prev) =>
-        prev.map((m) => (m._id === tempMessage._id ? res.data : m))
+        prev.map((m) => (m._id === tempId ? savedMessage : m))
       );
+
+      socketRef.current?.emit("sendMessage", savedMessage);
     } catch (err) {
       console.error("Failed to send message:", err);
-      setMessages((prev) => prev.filter((m) => m._id !== tempMessage._id));
+
+      setMessages((prev) => prev.filter((m) => m._id !== tempId));
     }
   };
 
@@ -137,10 +151,9 @@ export default function ChatPage() {
 
             <div className="input-area">
               <input
-                type="text"
                 value={messageText}
-                placeholder="Type a message..."
                 onChange={(e) => setMessageText(e.target.value)}
+                placeholder="Type a message..."
               />
               <button onClick={sendMessage}>Send</button>
             </div>

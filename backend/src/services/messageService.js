@@ -14,8 +14,8 @@ class MessageService {
       _id: message._id,
       text: message.text,
       chatId: message.chatId,
-      senderId: message.sender?._id || senderId,
-      senderEmail: message.sender?.email || "Unknown",
+      senderId: message.sender._id,
+      senderEmail: message.sender.email,
       createdAt: message.createdAt,
       updatedAt: message.updatedAt,
     };
@@ -30,8 +30,8 @@ class MessageService {
       _id: m._id,
       text: m.text,
       chatId: m.chatId,
-      senderId: m.sender?._id || null,
-      senderEmail: m.sender?.email || "Unknown",
+      senderId: m.sender._id,
+      senderEmail: m.sender.email,
       createdAt: m.createdAt,
       updatedAt: m.updatedAt,
     }));

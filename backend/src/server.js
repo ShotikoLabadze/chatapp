@@ -10,18 +10,19 @@ const messageRoutes = require("./routes/messageRoutes");
 
 const app = express();
 const server = http.createServer(app);
+
 const { Server } = require("socket.io");
 const io = new Server(server, {
   cors: { origin: "http://localhost:3000", methods: ["GET", "POST"] },
 });
+
+global.io = io;
 
 app.use(cors());
 app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/messages", messageRoutes);
-
-const messageService = require("./services/messageService");
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
@@ -31,19 +32,12 @@ io.on("connection", (socket) => {
     console.log(`User joined chat: ${chatId}`);
   });
 
-  socket.on("sendMessage", async ({ chatId, senderId, text }) => {
-    const message = await messageService.createMessage(chatId, senderId, text);
-    io.to(chatId).emit("newMessage", message);
+  socket.on("sendMessage", (data) => {
+    console.log("Incoming message via socket:", data);
+    io.to(data.chatId).emit("newMessage", data);
   });
 
-  socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
-  });
-});
-
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({ error: err.message });
+  socket.on("disconnect", () => console.log("User disconnected:", socket.id));
 });
 
 mongoose
