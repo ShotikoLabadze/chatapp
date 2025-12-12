@@ -1,9 +1,12 @@
 import { useState, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import api, { setAuthToken } from "../api/api";
 import { AuthContext } from "../contexts/AuthContext";
+import "./LoginPage.css";
 
 export default function LoginPage() {
   const { setAuth } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,24 +23,37 @@ export default function LoginPage() {
   };
 
   return (
-    <form onSubmit={handleLogin}>
-      <h2>Login</h2>
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-      />
-      <button type="submit">Login</button>
-    </form>
+    <div className="container">
+      <form onSubmit={handleLogin} className="form">
+        <h2 className="title">Login</h2>
+        {error && <p className="error">{error}</p>}
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          className="input"
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          className="input"
+        />
+        <button type="submit" className="button">
+          Login
+        </button>
+        <button
+          type="button"
+          className="toggle-button"
+          onClick={() => navigate("/register")}
+        >
+          Go to Register
+        </button>
+      </form>
+    </div>
   );
 }

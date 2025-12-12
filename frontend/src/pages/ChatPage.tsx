@@ -5,6 +5,7 @@ import ChatList from "../components/ChatList";
 import CreateDirectChat from "../components/CreateDirectChat";
 import api from "../api/api";
 import { Chat } from "../types/types";
+import "../pages/ChatPage.css";
 
 const socket = io("http://localhost:5000");
 
@@ -16,14 +17,10 @@ export default function ChatPage() {
   const [messageText, setMessageText] = useState("");
 
   const fetchChats = async () => {
-    try {
-      const res = await api.get("/chat", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setChats(res.data);
-    } catch (err) {
-      console.error(err);
-    }
+    const res = await api.get("/chat", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setChats(res.data);
   };
 
   useEffect(() => {
@@ -34,14 +31,10 @@ export default function ChatPage() {
     if (!selectedChat) return;
 
     const fetchMessages = async () => {
-      try {
-        const res = await api.get(`/messages/${selectedChat._id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setMessages(res.data);
-      } catch (err) {
-        console.error(err);
-      }
+      const res = await api.get(`/messages/${selectedChat._id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setMessages(res.data);
     };
 
     fetchMessages();
@@ -62,78 +55,63 @@ export default function ChatPage() {
   const sendMessage = async () => {
     if (!messageText || !selectedChat) return;
 
-    try {
-      const res = await api.post(
-        `/messages`,
-        { chatId: selectedChat._id, senderId: userId, text: messageText },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+    const res = await api.post(
+      `/messages`,
+      { chatId: selectedChat._id, senderId: userId, text: messageText },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-      socket.emit("sendMessage", res.data);
-      setMessageText("");
-    } catch (err) {
-      console.error(err);
-    }
+    socket.emit("sendMessage", res.data);
+    setMessageText("");
   };
 
   return (
-    <div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "10px",
-        }}
-      >
-        <h2>Chat App</h2>
-        <button onClick={logout}>Logout</button>
-      </div>
-
-      <div style={{ display: "flex", gap: "20px" }}>
-        <div style={{ width: "250px" }}>
-          <h3>Your Chats</h3>
-          <CreateDirectChat refreshChats={fetchChats} />
-          <ChatList chats={chats} selectChat={setSelectedChat} />
+    <div className="app-container">
+      <div className="sidebar">
+        <div className="sidebar-header">
+          <h2>Chats</h2>
+          <button className="logout-btn" onClick={logout}>
+            Logout
+          </button>
         </div>
 
-        <div style={{ flex: 1 }}>
-          {selectedChat ? (
-            <>
-              <h3>
-                Chat with: {selectedChat.users.map((u) => u.email).join(", ")}
-              </h3>
-              <div
-                style={{
-                  height: "300px",
-                  overflowY: "scroll",
-                  border: "1px solid #ccc",
-                  padding: "10px",
-                  marginBottom: "10px",
-                }}
-              >
-                {messages.map((msg, i) => (
-                  <div key={i}>
-                    <b>{msg.senderId === userId ? "You" : msg.senderEmail}:</b>{" "}
-                    {msg.text}
-                  </div>
-                ))}
-              </div>
+        <CreateDirectChat refreshChats={fetchChats} />
+        <ChatList chats={chats} selectChat={setSelectedChat} />
+      </div>
+
+      <div className="chat-window">
+        {!selectedChat ? (
+          <div className="no-chat-selected">Select a chat</div>
+        ) : (
+          <>
+            <div className="chat-header">
+              {selectedChat.users.map((u) => u.email).join(", ")}
+            </div>
+
+            <div className="messages-area">
+              {messages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={msg.senderId === userId ? "bubble me" : "bubble"}
+                >
+                  {msg.text}
+                </div>
+              ))}
+            </div>
+
+            <div className="input-area">
               <input
                 type="text"
                 value={messageText}
+                placeholder="Type a message..."
                 onChange={(e) => setMessageText(e.target.value)}
-                placeholder="Type a message"
               />
               <button onClick={sendMessage}>Send</button>
-            </>
-          ) : (
-            <p>Select a chat</p>
-          )}
-        </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
 }
-
 ///2 jer gzavnis

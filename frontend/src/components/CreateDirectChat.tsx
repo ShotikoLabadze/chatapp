@@ -1,6 +1,7 @@
 import { useState, useContext } from "react";
 import { AuthContext } from "../contexts/AuthContext";
 import api from "../api/api";
+import "./CreateDirectChat.css";
 
 interface Props {
   refreshChats: () => void;
@@ -30,15 +31,22 @@ export default function CreateDirectChat({ refreshChats }: Props) {
   };
 
   return (
-    <div>
-      <input
-        type="email"
-        placeholder="Friend's email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <button onClick={handleCreateChat}>Create Chat</button>
-      {error && <p>{error}</p>}
+    <div className="chat-wrapper">
+      <div className="chat-box">
+        <input
+          type="email"
+          placeholder="Friend's email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="chat-input"
+        />
+
+        <button onClick={handleCreateChat} className="chat-btn">
+          +
+        </button>
+      </div>
+
+      {error && <p className="chat-error">{error}</p>}
     </div>
   );
 }
