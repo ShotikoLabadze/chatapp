@@ -18,7 +18,9 @@ export default function ChatPage() {
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    const socket = io("http://localhost:5000");
+    const socket = io(process.env.REACT_APP_SOCKET_URL!, {
+      transports: ["websocket"],
+    });
     socketRef.current = socket;
 
     return () => {
