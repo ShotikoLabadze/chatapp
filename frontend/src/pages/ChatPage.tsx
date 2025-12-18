@@ -14,6 +14,7 @@ export default function ChatPage() {
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [messageText, setMessageText] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const socketRef = useRef<Socket | null>(null);
 
@@ -83,7 +84,6 @@ export default function ChatPage() {
     if (!messageText.trim() || !selectedChat) return;
 
     const chatId = selectedChat._id;
-
     const tempId = "temp-" + Date.now();
     const tempMessage = {
       _id: tempId,
@@ -113,23 +113,45 @@ export default function ChatPage() {
       socketRef.current?.emit("sendMessage", savedMessage);
     } catch (err) {
       console.error("Failed to send message:", err);
-
       setMessages((prev) => prev.filter((m) => m._id !== tempId));
     }
   };
 
   return (
     <div className="app-container">
-      <div className="sidebar">
+      {!sidebarOpen && (
+        <button
+          className="mobile-chats-btn"
+          onClick={() => setSidebarOpen(true)}
+        >
+          Chats
+        </button>
+      )}
+
+      <div className={`sidebar ${sidebarOpen ? "active" : ""}`}>
         <div className="sidebar-header">
           <h2>Chats</h2>
-          <button className="logout-btn" onClick={logout}>
-            Logout
-          </button>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <button className="logout-btn" onClick={logout}>
+              Logout
+            </button>
+            <button
+              className="close-sidebar"
+              onClick={() => setSidebarOpen(false)}
+            >
+              ×
+            </button>
+          </div>
         </div>
 
         <CreateDirectChat refreshChats={fetchChats} />
-        <ChatList chats={chats} selectChat={setSelectedChat} />
+        <ChatList
+          chats={chats}
+          selectChat={(chat) => {
+            setSelectedChat(chat);
+            setSidebarOpen(false);
+          }}
+        />
       </div>
 
       <div className="chat-window">
@@ -138,7 +160,10 @@ export default function ChatPage() {
         ) : (
           <>
             <div className="chat-header">
-              {selectedChat.users.map((u) => u.email).join(", ")}
+              {selectedChat.users
+                .filter((u) => u._id !== userId)
+                .map((u) => u.email)
+                .join(", ")}
             </div>
 
             <div className="messages-area">
