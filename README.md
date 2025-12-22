@@ -17,7 +17,7 @@ Users can register, log in, and send messages in direct or group chats with real
 
 ### Chat Page
 
-![Notes Page](screenshots/personalNotes.png)
+![Chat Page](screenshots/ChatPage.png)
 
 ---
 
